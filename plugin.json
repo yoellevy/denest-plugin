@@ -1,0 +1,13 @@
+{
+  "name": "denest",
+  "version": "0.3.0",
+  "description": "Connect to DeNest, open workflow maps and explain results from your coding agent.",
+  "author": {
+    "name": "DeNest"
+  },
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/denest-setup/SKILL.md"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "denest",
+  "owner": {
+    "name": "DeNest"
+  },
+  "plugins": [
+    {
+      "name": "denest",
+      "source": "./",
+      "description": "Connect to DeNest, open workflow maps and explain results from your coding agent."
+    }
+  ]
+}
