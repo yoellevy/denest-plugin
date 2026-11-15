@@ -3,14 +3,7 @@
   "mcpServers": {
     "denest": {
       "type": "streamable-http",
-      "url": "https://denest.ai/api/mcp",
-      "extensions": {
-        "com.openai": {
-          "auth": {
-            "type": "oauth"
-          }
-        }
-      }
+      "url": "https://denest.ai/api/mcp"
     }
   }
 }

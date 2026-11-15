@@ -8,9 +8,25 @@ Requires Node.js 20 or later for the local helper. It includes its dependencies.
 
 In Claude Code, run `/plugin marketplace add yoellevy/denest-plugin`, then `/plugin install denest@denest`. Use `/mcp` to sign in to DeNest if prompted.
 
-For Codex, add the marketplace once with `codex plugin marketplace add yoellevy/denest-plugin`. Open Plugins in the desktop app, choose DeNest and install it. Complete the Denest sign-in action, then start a new chat. Once the marketplace is added, [open the install screen](codex://plugins/install/denest?marketplace=denest).
+For Codex on a new PC:
+
+1. Install Codex desktop and Node.js 20 or later.
+2. Run `codex plugin marketplace add yoellevy/denest-plugin` once in a terminal.
+3. Open Plugins in Codex, choose DeNest and install it. Alternatively, run `codex plugin add denest@denest`.
+4. Complete DeNest's Connect / Sign in action with your own Google account.
+5. Start a new chat in your project and ask to use DeNest.
+
+Once the marketplace is added, [open the install screen](codex://plugins/install/denest?marketplace=denest). The plugin supplies `https://denest.ai/api/mcp`; no manual MCP server entry, local DeNest server or project-specific connection is needed. Local desktop sign-in may briefly return to a `127.0.0.1` callback so Codex can receive the result. The service itself runs on denest.ai.
+
+### Existing installations
+
+Update the marketplace with `codex plugin marketplace upgrade denest`, then install the current package with `codex plugin add denest@denest`. If tools are missing, check the connection's actual startup status before repeating sign-in. Installed does not necessarily mean loaded into the current chat.
+
+Older manual setups may have a global `[mcp_servers.denest]` entry in the Codex configuration. This can override the plugin's connection. If it still points to a `run.app` address, back up the configuration and correct that entry to `https://denest.ai/api/mcp`, then complete native sign-in for that endpoint. Do not copy tokens or account files from another PC. Do not add a second manual server to fix a bundled connection.
 
 Ask your coding agent to use DeNest to map your current project. The setup skill guides workspace creation. Each user signs in with their own verified Google account. Model generation requires that user's OpenRouter key in the hosted app settings.
+
+Version 0.3.2 fixes compatibility with Codex desktop's portable MCP parser: OAuth is discovered from the server because some desktop versions reject server-level `extensions` in `mcp.json`. If a diagnostic reports `unknown field extensions`, update the plugin. Run `node scripts/check-package.mjs` before publishing to check entry points, versions and connection settings.
 
 ## What runs locally
 
