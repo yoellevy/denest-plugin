@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "denest",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Connect to DeNest, open workflow maps and explain results from your coding agent.",
   "author": {
     "name": "DeNest"
