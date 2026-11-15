@@ -15,6 +15,9 @@ async function main(){
  if(!['login','link','start','status','retry'].includes(action)){console.log('DeNest bridge: login | link --agent NAME --session ID --workspace PATH --project ID [--pipeline main] [--executable PATH] | start [--once] | status | retry --request ID. Optional: --profile NAME');return;}
  if(!/^[A-Za-z0-9_-]{1,60}$/.test(values.profile))throw Error('Invalid profile name');
  const root=join(homedir(),'.denest','bridge'),directory=join(root,values.profile);await mkdir(directory,{recursive:true,mode:0o700});
+ if(action==='status'){
+  const {data}=await storage(directory);console.log(JSON.stringify({linked:!!data.config,agent:data.config?.agent,projectId:data.config?.projectId,pipelineId:data.config?.pipelineId,requests:Object.entries(data.ledger).map(([id,item])=>({id,status:item.status}))},null,2));return;
+ }
  // Serialize profile writes and prevent two workers from sharing one credential session.
  const lockPath=join(directory,'profile.lock');let lock;try{lock=await open(lockPath,'wx',0o600);await lock.writeFile(String(process.pid));}catch{throw Error('This profile is already running or was interrupted. Stop its process and review it before removing profile.lock');}
  let connection,sessionLock;
@@ -29,7 +32,6 @@ async function main(){
    data.config={agent:values.agent,session:values.session,workspace,projectId:values.project,pipelineId:values.pipeline,...(values.executable?{executable:resolve(values.executable)}:{})};data.ledger={};await save();console.log('Linked the selected canvas and agent session. Automatic Send starts when you run start.');return;
   }
   if(action==='login'){connection=await connect(profile,{login:true});console.log('DeNest connection verified.');return;}
-  if(action==='status'){console.log(JSON.stringify({linked:!!data.config,agent:data.config?.agent,projectId:data.config?.projectId,pipelineId:data.config?.pipelineId,requests:Object.entries(data.ledger).map(([id,item])=>({id,status:item.status}))},null,2));return;}
   if(!data.config)throw Error('Link this profile first');const config=data.config;
   const sessionHash=createHash('sha256').update(JSON.stringify([config.agent,config.session])).digest('hex');sessionLock=join(root,sessionHash+'.lock');
   let sessionFile;try{sessionFile=await open(sessionLock,'wx',0o600);await sessionFile.writeFile(String(process.pid));await sessionFile.close();}catch{sessionLock=undefined;throw Error('Another bridge owns this agent session; review its lock before restarting');}
