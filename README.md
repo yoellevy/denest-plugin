@@ -13,8 +13,8 @@ For Codex on a new PC:
 1. Install Codex desktop and Node.js 20 or later.
 2. Run `codex plugin marketplace add yoellevy/denest-plugin` once in a terminal.
 3. Open Plugins in Codex, choose DeNest and install it. Alternatively, run `codex plugin add denest@denest`.
-4. Complete DeNest's Connect / Sign in action with your own Google account.
-5. Start a new chat in your project and ask to use DeNest.
+4. Run DeNest's setup action, or ask “Connect DeNest and open this project.” Setup checks access and opens Connect / Sign in only if needed.
+5. Finish Google sign-in and the DeNest approval. Setup must successfully call `list_projects` before saying **Ready**, then continue your original request. An empty project list is valid. A new chat is needed only if your host cannot refresh the current chat's tools.
 
 Once the marketplace is added, [open the install screen](codex://plugins/install/denest?marketplace=denest). The plugin supplies `https://denest.ai/api/mcp`; no manual MCP server entry, local DeNest server or project-specific connection is needed. Local desktop sign-in may briefly return to a `127.0.0.1` callback so Codex can receive the result. The service itself runs on denest.ai.
 
@@ -27,6 +27,18 @@ Older manual setups may have a global `[mcp_servers.denest]` entry in the Codex 
 Ask your coding agent to use DeNest to map your current project. The setup skill guides workspace creation. Each user signs in with their own verified Google account. Model generation requires that user's OpenRouter key in the hosted app settings.
 
 Version 0.3.2 fixes compatibility with Codex desktop's portable MCP parser: OAuth is discovered from the server because some desktop versions reject server-level `extensions` in `mcp.json`. If a diagnostic reports `unknown field extensions`, update the plugin. Run `node scripts/check-package.mjs` before publishing to check entry points, versions and connection settings.
+
+### ChatGPT and project chats
+
+The Git marketplace package supplies local coding-client skills and the bundled MCP connection. It is not a public ChatGPT directory listing, and a local Codex sign-in does not connect ChatGPT automatically.
+
+In ChatGPT, use the existing personal DeNest plugin and choose **Connect** if no account is connected. If no hosted connection exists, use **Plugins → Add → Add custom MCP server**, enter `https://denest.ai/api/mcp`, choose OAuth with discovered Dynamic Client Registration, create the personal plugin and complete Connect. Each user connects their own account; do not copy someone else's technical app ID or credentials. Setup should guide these steps using the host's controls and verify a real tool call afterward. Once connected, select DeNest in a chat when needed.
+
+### What setup verifies
+
+Version 0.3.4's onboarding skill distinguishes **Ready**, **Finish connecting**, **Connected; tools unavailable in this chat**, **Connection setup needed**, and **Connection check failed**. Only a successful authenticated `list_projects` call in the current chat establishes Ready. Missing tools alone do not justify another login. Setup retains your original request, checks again after sign-in and continues it when access works.
+
+These are setup-skill statuses, not new controls in ChatGPT/Codex's settings UI. The client still owns authentication, required approval prompts and tool loading. Model generation may separately require an OpenRouter key in DeNest settings; the readiness check does not invoke a model or upload project data.
 
 ## What runs locally
 
