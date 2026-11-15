@@ -56,4 +56,10 @@ For an authorized evidence request, pass its JSON request array on standard inpu
 
 Use the setup skill to obtain a sanitized connection report when troubleshooting. Keep authorization codes, cookies and model keys out of support reports.
 
-This repository contains the public client package. Zod's license is included in `THIRD_PARTY_NOTICES.txt`.
+## Automatic Send
+
+Version 0.3.5 adds a host-aware Automatic Send workflow and an optional local CLI bridge. Native MCP Events delivery has been verified end to end in ChatGPT Work. The Codex, Claude Code, Cursor and Antigravity CLI adapters are experimental and need a live test on the target computer; a CLI adapter does not imply support for waking an IDE chat.
+
+Use the [another-computer checklist](docs/another-computer.md) and [bridge setup](bridge/README.md). Ordinary MCP connection and manual sync remain available independently.
+
+This repository contains the public client package. Dependency licenses are included in `THIRD_PARTY_NOTICES.txt` and the installed dependencies.
