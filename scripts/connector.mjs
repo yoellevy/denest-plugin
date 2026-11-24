@@ -19730,6 +19730,9 @@ function date4(params) {
   return _coercedDate(ZodDate, params);
 }
 
+// logic/adapters.mjs
+import { spawnSync } from "node:child_process";
+
 // logic/schema.mjs
 import { createHash } from "node:crypto";
 var key = external_exports.string().min(1).max(300);
@@ -19842,8 +19845,96 @@ var LogicManifestAdapter = class extends StructureAdapter {
     return { entities, relations };
   }
 };
+var pythonIndex = String.raw`
+import ast
+import json
+import sys
+
+tree = ast.parse(sys.stdin.buffer.read().decode('utf-8-sig'))
+symbols, calls, imports = [], [], {}
+for node in tree.body:
+    if isinstance(node, ast.ImportFrom):
+        for alias in node.names:
+            if alias.name != '*':
+                imports.setdefault(alias.asname or alias.name, []).append(
+                    '.' * node.level + (node.module + '.' if node.module else '') + alias.name)
+    elif isinstance(node, ast.Import):
+        for alias in node.names:
+            name = alias.asname or alias.name.split('.')[0]
+            imports.setdefault(name, []).append(alias.name if alias.asname else name)
+
+class Index(ast.NodeVisitor):
+    owner = None
+
+    def symbol(self, node, kind):
+        previous = self.owner
+        self.owner = len(symbols)
+        symbols.append([node.name, kind, previous, node.lineno, node.end_lineno])
+        for statement in node.body:
+            self.visit(statement)
+        self.owner = previous
+
+    def visit_FunctionDef(self, node):
+        self.symbol(node, 'function')
+
+    visit_AsyncFunctionDef = visit_FunctionDef
+
+    def visit_ClassDef(self, node):
+        self.symbol(node, 'class')
+
+    def visit_Call(self, node):
+        parts, target = [], node.func
+        while isinstance(target, ast.Attribute):
+            parts.append(target.attr)
+            target = target.value
+        if isinstance(target, ast.Name):
+            parts.append(target.id)
+            parts.reverse()
+            candidates = imports.get(parts[0], [])
+            hint = '.'.join([candidates[0], *parts[1:]]) if len(candidates) == 1 else None
+            calls.append([self.owner, '.'.join(parts), hint, node.func.lineno, node.func.end_lineno])
+        self.generic_visit(node)
+
+Index().visit(tree)
+print(json.dumps([symbols, calls]))
+`;
+var PythonAdapter = class extends StructureAdapter {
+  id = "python-ast-v1";
+  executable;
+  supports(path) {
+    return /\.py$/i.test(path);
+  }
+  extract({ text, artifactId }) {
+    let parsed;
+    if (this.executable === null) throw Error("Python 3 is unavailable");
+    const candidates = this.executable ? [this.executable] : process.platform === "win32" ? ["py", "python", "python3"] : ["python3", "python"];
+    for (const executable of candidates) {
+      const args2 = [...executable === "py" ? ["-3"] : [], "-I", "-S", "-c", pythonIndex];
+      parsed = spawnSync(executable, args2, { input: Buffer.from(text), encoding: "utf8", timeout: 4e3, maxBuffer: 4e6, windowsHide: true });
+      if (parsed.status === 0 || parsed.stderr?.includes("SyntaxError")) {
+        this.executable = executable;
+        break;
+      }
+      if (this.executable || parsed.error?.code === "ETIMEDOUT") break;
+    }
+    if (parsed.error?.code === "ENOENT" && !this.executable) this.executable = null;
+    if (parsed.status !== 0) throw Error("Python source could not be indexed");
+    const [symbols, calls] = JSON.parse(parsed.stdout), entities = [], occurrences = /* @__PURE__ */ new Map();
+    for (const [rawName, kind2, owner, startLine, endLine] of symbols) {
+      const parentId = entities[owner]?.id ?? artifactId, name = rawName.slice(0, 240);
+      const key2 = JSON.stringify([parentId, kind2, name]), ordinal = occurrences.get(key2) ?? 0;
+      occurrences.set(key2, ordinal + 1);
+      entities.push({ id: stableId(key2, ordinal), kind: kind2, name, artifactId, parentId, range: { startLine, endLine }, tags: [], provenance: provenance(this.id) });
+    }
+    const relations = calls.map(([owner, name, hint, startLine, endLine], index) => {
+      const from = entities[owner]?.id ?? artifactId;
+      return { id: stableId(from, "call", index), kind: "calls", from, targetName: (hint ?? name).slice(0, 300), range: { startLine, endLine }, provenance: provenance(this.id, "extracted", "unresolved") };
+    });
+    return { entities, relations };
+  }
+};
 var AdapterRegistry = class {
-  constructor(adapters = [new LogicManifestAdapter(), new MarkdownAdapter()]) {
+  constructor(adapters = [new LogicManifestAdapter(), new MarkdownAdapter(), new PythonAdapter()]) {
     this.adapters = adapters;
   }
   register(adapter) {
